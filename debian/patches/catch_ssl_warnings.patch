@@ -1,0 +1,10 @@
+--- a/src/etcd/__init__.py
++++ b/src/etcd/__init__.py
+@@ -15,6 +15,7 @@
+             pass
+ _log.addHandler(NullHandler())
+ 
++logging.captureWarnings(True)
+ 
+ class EtcdResult(object):
+     _node_props = {

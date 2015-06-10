@@ -1,4 +1,4 @@
-python-etcd (0.4.3-1) unstable; urgency=medium
+python-etcd (0.4.3-1~precise0) unstable; urgency=medium
 
   * Sync with the latest upstream version
 
