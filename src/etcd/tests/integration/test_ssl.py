@@ -76,6 +76,7 @@ class TestEncryptedAccess(test_simple.EtcdIntegrationTest):
         get_result = client.get('/test_set')
 
 
+    @nottest
     def test_get_set_unauthenticated_with_ca(self):
         """ INTEGRATION: try unauthenticated with validation (https->https)"""
         client = etcd.Client(
