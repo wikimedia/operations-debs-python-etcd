@@ -473,7 +473,6 @@ class Client(object):
         response = self.api_execute(
             self.key_endpoint + key, self._MGET, params=params,
             timeout=timeout)
-        print response
         return self._result_from_response(response)
 
     def delete(self, key, recursive=None, dir=None, **kwdargs):
@@ -743,18 +742,7 @@ class Client(object):
                 # Check the cluster ID hasn't changed under us.  We use
                 # preload_content=False above so we can read the headers
                 # before we wait for the content of a long poll.
-                cluster_id = response.getheader("x-etcd-cluster-id")
-                id_changed = (self.expected_cluster_id and
-                              cluster_id != self.expected_cluster_id)
-                # Update the ID so we only raise the exception once.
-                self.expected_cluster_id = cluster_id
-                if id_changed:
-                    # Defensive: clear the pool so that we connect afresh next
-                    # time.
-                    self.http.clear()
-                    raise etcd.EtcdClusterIdChanged(
-                        'The UUID of the cluster changed from {} to '
-                        '{}.'.format(self.expected_cluster_id, cluster_id))
+                self._check_cluster_id(response.getheader("x-etcd-cluster-id"))
 
         if some_request_failed:
             if not self._use_proxies:
@@ -762,6 +750,26 @@ class Client(object):
                 self._machines_cache = self.machines
             self._machines_cache.remove(self._base_uri)
         return self._handle_server_response(response)
+
+    def _check_cluster_id(self, cluster_id):
+        # Some etcd responses do _not_ include the cluster id,
+        # in that case, just skip this.
+        if cluster_id is None:
+            _log.info("Could not get cluster ID")
+            return
+        id_changed = (self.expected_cluster_id and cluster_id and
+                      cluster_id != self.expected_cluster_id)
+        # Update the ID so we only raise the exception once.
+        self.expected_cluster_id = cluster_id
+        if id_changed:
+            # Defensive: clear the pool so that we connect afresh next
+            # time.
+            self.http.clear()
+            raise etcd.EtcdClusterIdChanged(
+                'The UUID of the cluster changed from {} to '
+                '{}.'.format(self.expected_cluster_id, cluster_id))
+
+
 
     def _handle_server_response(self, response):
         """ Handles the server response """
