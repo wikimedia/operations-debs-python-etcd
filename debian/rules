@@ -2,11 +2,13 @@
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 
-export PYBUILD_NAME=etcd
-export PYBUILD_DISABLE=test
-
 %:
-	dh $@ --with python2,python3,sphinxdoc --buildsystem=pybuild
+	dh $@ --with python2,python3,sphinxdoc --buildsystem=python_distutils
+
+clean:
+	dh_testdir
+	dh_auto_clean
+	dh_clean
 
 override_dh_auto_build:
 	dh_auto_build
