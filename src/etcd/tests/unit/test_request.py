@@ -1,40 +1,12 @@
-import etcd
-import unittest
-import json
 import urllib3
+
+import etcd
+from etcd.tests.unit import TestClientApiBase
 
 try:
     import mock
 except ImportError:
     from unittest import mock
-
-from etcd import EtcdException
-
-
-class TestClientApiBase(unittest.TestCase):
-
-    def setUp(self):
-        self.client = etcd.Client()
-
-    def _prepare_response(self, s, d, cluster_id=None):
-        if isinstance(d, dict):
-            data = json.dumps(d).encode('utf-8')
-        else:
-            data = d.encode('utf-8')
-
-        r = mock.create_autospec(urllib3.response.HTTPResponse)()
-        r.status = s
-        r.data = data
-        r.getheader.return_value = cluster_id or "abcd1234"
-        return r
-
-    def _mock_api(self, status, d, cluster_id=None):
-        resp = self._prepare_response(status, d, cluster_id=cluster_id)
-        self.client.api_execute = mock.create_autospec(
-            self.client.api_execute, return_value=resp)
-
-    def _mock_exception(self, exc, msg):
-        self.client.api_execute = mock.Mock(side_effect=exc(msg))
 
 
 class TestClientApiInternals(TestClientApiBase):
@@ -187,7 +159,7 @@ class TestClientApiInterface(TestClientApiBase):
         """ Can request the leader """
         members = {"ce2a822cea30bfca": {"id": "ce2a822cea30bfca", "name": "default"}}
         mocker.return_value = members
-        self._mock_api(200, {"leader": "ce2a822cea30bfca", "followers": {}})
+        self._mock_api(200, {"leaderInfo":{"leader": "ce2a822cea30bfca", "followers": {}}})
         self.assertEquals(self.client.leader, members["ce2a822cea30bfca"])
 
     def test_set_plain(self):
@@ -310,6 +282,26 @@ class TestClientApiInterface(TestClientApiBase):
         res = self.client.delete('/testKey')
         self.assertEquals(res, etcd.EtcdResult(**d))
 
+    def test_pop(self):
+        """ Can pop a value """
+        d = {
+            u'action': u'delete',
+            u'node': {
+                u'key': u'/testkey',
+                u'modifiedIndex': 3,
+                u'createdIndex': 2
+            },
+            u'prevNode': {u'newKey': False, u'createdIndex': None,
+                          u'modifiedIndex': 190, u'value': u'test', u'expiration': None,
+                          u'key': u'/testkey', u'ttl': None, u'dir': False}
+        }
+
+        self._mock_api(200, d)
+        res = self.client.pop(d['node']['key'])
+        self.assertEquals({attr: getattr(res, attr) for attr in dir(res)
+                           if attr in etcd.EtcdResult._node_props}, d['prevNode'])
+        self.assertEqual(res.value, d['prevNode']['value'])
+
     def test_read(self):
         """ Can get a value """
         d = {
@@ -405,12 +397,9 @@ class TestClientRequest(TestClientApiInterface):
     def _mock_api(self, status, d, cluster_id=None):
         resp = self._prepare_response(status, d)
         resp.getheader.return_value = cluster_id or "abcdef1234"
-        self.client.http.request_encode_body = mock.create_autospec(
-            self.client.http.request_encode_body, return_value=resp
-        )
-        self.client.http.request = mock.create_autospec(
-            self.client.http.request, return_value=resp
-        )
+        self.client.http.request_encode_body = mock.MagicMock(
+            return_value=resp)
+        self.client.http.request = mock.MagicMock(return_value=resp)
 
     def _mock_error(self, error_code, msg, cause, method='PUT', fields=None,
                     cluster_id=None):
@@ -436,6 +425,20 @@ class TestClientRequest(TestClientApiInterface):
             '/testKey',
             'test',
             prevValue='oldbog'
+        )
+
+    def test_watch_timeout(self):
+        """ Exception will be raised if prevValue != value in test_set """
+        self.client.http.request = mock.create_autospec(
+            self.client.http.request,
+            side_effect=urllib3.exceptions.ReadTimeoutError(self.client.http,
+                                                            "foo",
+                                                            "Read timed out")
+        )
+        self.assertRaises(
+            etcd.EtcdWatchTimedOut,
+            self.client.watch,
+            '/testKey',
         )
 
     def test_path_without_trailing_slash(self):
