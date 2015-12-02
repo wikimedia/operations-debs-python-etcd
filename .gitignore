@@ -4,9 +4,12 @@
 bin
 develop-eggs
 eggs
+.eggs
+.idea
 *.egg-info
 
 tmp
 build
 dist
+docs
 .coverage

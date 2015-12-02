@@ -8,6 +8,9 @@ Official documentation: http://python-etcd.readthedocs.org/
 .. image:: https://travis-ci.org/jplana/python-etcd.png?branch=master
    :target: https://travis-ci.org/jplana/python-etcd
 
+.. image:: https://coveralls.io/repos/jplana/python-etcd/badge.svg?branch=master&service=github
+   :target: https://coveralls.io/github/jplana/python-etcd?branch=master
+
 Installation
 ------------
 
@@ -41,6 +44,8 @@ Create a client object
     client = etcd.Client(port=4002)
     client = etcd.Client(host='127.0.0.1', port=4003)
     client = etcd.Client(host='127.0.0.1', port=4003, allow_redirect=False) # wont let you run sensitive commands on non-leader machines, default is true
+    # If you have defined a SRV record for _etcd._tcp.example.com pointing to the clients
+    client = etcd.Client(srv_domain='example.com', protocol="https")
     # create a client against https://api.example.com:443/etcd
     client = etcd.Client(host='api.example.com', protocol='https', port=443, version_prefix='/etcd')
 Write a key
@@ -108,40 +113,24 @@ Locking module
     # Initialize the lock object:
     # NOTE: this does not acquire a lock yet
     client = etcd.Client()
-    lock = client.get_lock('/customer1', ttl=60)
+    lock = etcd.Lock(client, 'my_lock_name')
 
     # Use the lock object:
-    lock.acquire(timeout=30) #returns if lock could not be acquired within 30 seconds
-    lock.is_locked()  # True
-    lock.renew(60)
-    lock.release()
-    lock.is_locked()  # False
+    lock.acquire(blocking=True, # will block until the lock is acquired
+          lock_ttl=None) # lock will live until we release it
+    lock.is_acquired()  #
+    lock.acquire(lock_ttl=60) # renew a lock
+    lock.release() # release an existing lock
+    lock.is_acquired()  # False
 
     # The lock object may also be used as a context manager:
     client = etcd.Client()
-    lock = client.get_lock('/customer1', ttl=60)
-    with lock as my_lock:
+    with etcd.Lock(client, 'customer1') as my_lock:
         do_stuff()
-        lock.is_locked()  # True
-        lock.renew(60)
-    lock.is_locked()  # False
+        my_lock.is_acquired()  # True
+        my_lock.acquire(lock_ttl = 60)
+    my_lock.is_acquired() # False
 
-
-Leader Election module
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code:: python
-
-    # Set a leader object with a name; if no name is given, the local hostname
-    # is used.
-    # Zero or no ttl means the leader object is persistent.
-    client = etcd.Client()
-    client.election.set('/mysql', name='foo.example.com', ttl=120, timeout=30) # returns the etcd index
-
-    # Get the name
-    print(client.election.get('/mysql')) # 'foo.example.com'
-    # Delete it!
-    print(client.election.delete('/mysql', name='foo.example.com'))
 
 Get machines in the cluster
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

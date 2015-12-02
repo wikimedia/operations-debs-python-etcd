@@ -1,5 +1,6 @@
 import logging
 from .client import Client
+from .lock import Lock
 
 _log = logging.getLogger(__name__)
 
@@ -35,6 +36,8 @@ class EtcdResult(object):
             action (str): The action that resulted in key creation
 
             node (dict): The dictionary containing all node information.
+
+            prevNode (dict): The dictionary containing previous node information.
 
         """
         self.action = action
@@ -73,13 +76,14 @@ class EtcdResult(object):
             #if the current result is a leaf, return itself
             yield self
             return
-        for n in self._children:
-            node = EtcdResult(None, n)
+        else:
+            # node is not a leaf
             if not leaves_only:
-                #Return also dirs, not just value nodes
-                yield node
-            for child in node.get_subtree(leaves_only=leaves_only):
-                yield child
+                yield self
+            for n in self._children:
+                node = EtcdResult(None, n)
+                for child in node.get_subtree(leaves_only=leaves_only):
+                    yield child
         return
 
     @property
@@ -117,7 +121,7 @@ class EtcdException(Exception):
     Generic Etcd Exception.
     """
     def __init__(self, message=None, payload=None):
-        super(Exception, self).__init__(message)
+        super(EtcdException, self).__init__(message)
         self.payload = payload
 
 
@@ -190,6 +194,23 @@ class EtcdConnectionFailed(EtcdException):
     """
     Connection to etcd failed.
     """
+    def __init__(self, message=None, payload=None, cause=None):
+        super(EtcdConnectionFailed, self).__init__(message=message,
+                                                   payload=payload)
+        self.cause = cause
+
+
+class EtcdInsufficientPermissions(EtcdException):
+    """
+    Request failed because of insufficient permissions.
+    """
+    pass
+
+
+class EtcdWatchTimedOut(EtcdConnectionFailed):
+    """
+    A watch timed out without returning a result.
+    """
     pass
 
 
@@ -220,6 +241,11 @@ class EtcdDirNotEmpty(EtcdValueError):
     """
     pass
 
+class EtcdLockExpired(EtcdException):
+    """
+    Our lock apparently expired while we were trying to acquire it.
+    """
+
 
 class EtcdError(object):
     # See https://github.com/coreos/etcd/blob/master/Documentation/errorcode.md
@@ -234,6 +260,7 @@ class EtcdError(object):
         107: EtcdRootReadOnly,
         108: EtcdDirNotEmpty,
         # 109: Non-public: existing peer addr.
+        110: EtcdInsufficientPermissions,
 
         200: EtcdValueError,
         201: EtcdValueError,
@@ -265,6 +292,13 @@ class EtcdError(object):
         message = payload.get("message")
         cause = payload.get("cause")
         msg = '{} : {}'.format(message, cause)
+        status = payload.get("status")
+        # Some general status handling, as
+        # not all endpoints return coherent error messages
+        if status == 404:
+            error_code = 100
+        elif status == 401:
+            error_code = 110
         exc = cls.error_exceptions.get(error_code, EtcdException)
         if issubclass(exc, EtcdException):
             raise exc(msg, payload)
