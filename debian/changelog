@@ -4,6 +4,12 @@ python-etcd (0.4.3-1) unstable; urgency=medium
 
  -- Giuseppe Lavagetto <glavagetto@wikimedia.org>  Wed, 02 Dec 2015 20:21:23 +0100
 
+python-etcd (0.4.0~git20150609+ac25bd7ba2-1) unstable; urgency=medium
+
+  * Sync with the latest upstream version
+
+ -- Giuseppe Lavagetto <glavagetto@wikimedia.org>  Tue, 09 Jun 2015 19:34:19 +0200
+
 python-etcd (0.3.3-1) unstable; urgency=medium
 
   * Initial packaging
