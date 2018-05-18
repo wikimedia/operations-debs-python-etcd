@@ -1,3 +1,9 @@
+python-etcd (0.4.3-2) jessie-wikimedia; urgency=medium
+
+  * Fix debianization (now install python3 files in the correct place)
+
+ -- Giuseppe Lavagetto <glavagetto@wikimedia.org>  Fri, 18 May 2018 18:29:18 +0100
+
 python-etcd (0.4.3-1) unstable; urgency=medium
 
   * Sync with the latest upstream version

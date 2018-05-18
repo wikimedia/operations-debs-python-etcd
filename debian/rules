@@ -1,15 +1,19 @@
 #!/usr/bin/make -f
-DPKG_EXPORT_BUILDFLAGS = 1
-include /usr/share/dpkg/default.mk
 
 %:
-	dh $@ --with python2,python3,sphinxdoc --buildsystem=python_distutils
+	dh $* --with python2,python3
 
-clean:
-	dh_testdir
+
+override_dh_auto_clean:
 	dh_auto_clean
-	dh_clean
+	rm -rf build/
+	rm -rf src/python_etcd.egg-info
 
-override_dh_auto_build:
-	dh_auto_build
-	PYTHONPATH=. http_proxy='127.0.0.1:9' sphinx-build -N -bhtml docs-source/ .pybuild/docs/html
+override_dh_auto_install:
+	dh_auto_install
+	set -ex; for python in $(shell py3versions -r); do \
+		$$python setup.py install --root=$(CURDIR)/debian/tmp --install-layout=deb; \
+	done;
+	# Install everything excluding the *_d.so debug extensions to python-etcd and python3-etcd
+	dh_install -X"*_d.so" "debian/tmp/usr/lib/python2*/*-packages" -p python-etcd
+	dh_install -X"*_d.so" "debian/tmp/usr/lib/python3*/*-packages" -p python3-etcd
