@@ -1,3 +1,9 @@
+python-etcd (0.4.3-3) stretch-wikimedia; urgency=medium
+
+  * Fix issues connecting with etcd version 3
+
+ -- Giuseppe Lavagetto <glavagetto@wikimedia.org>  Thu, 04 Oct 2018 18:28:57 +0200
+
 python-etcd (0.4.3-2) jessie-wikimedia; urgency=medium
 
   * Fix debianization (now install python3 files in the correct place)

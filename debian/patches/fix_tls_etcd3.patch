@@ -1,0 +1,45 @@
+Description: Fix TLS issues when connecting to etcd 3.x
+
+ When trying to connect to etcd v3 with ECDSA certificates, several SSL
+ errors will be encountered. Specifically:
+ * Only TLSv1 is negotiated by python-etcd, but the etcd server only
+   supports TLSv1.2. This is already part of upstream's newer versions.
+ * Injecting pyopenssl into urllib3 results in failures to correctly
+   parse the SANs in ECDSA certs. While the exact issue wasn't pinned
+   down, the whole monkey-patching was only useful in the past for SNI
+   support and that's just not needed by an etcd client. It's notable
+   that a widely used librar as python-requests has the same problem.
+Author: Giuseppe Lavagetto
+Forwarded: No
+Last-Update: 2018-10-04
+
+--- a/src/etcd/__init__.py
++++ b/src/etcd/__init__.py
+@@ -304,12 +304,3 @@ class EtcdError(object):
+             raise exc(msg, payload)
+         else:
+             raise exc(msg)
+-
+-
+-# Attempt to enable urllib3's SNI support, if possible
+-# Blatantly copied from requests.
+-try:
+-    from urllib3.contrib import pyopenssl
+-    pyopenssl.inject_into_urllib3()
+-except ImportError:
+-    pass
+--- a/src/etcd/client.py
++++ b/src/etcd/client.py
+@@ -153,12 +153,6 @@ class Client(object):
+         if self._read_timeout > 0:
+             kw['timeout'] = self._read_timeout
+ 
+-        if protocol == 'https':
+-            # If we don't allow TLSv1, clients using older version of OpenSSL
+-            # (<1.0) won't be able to connect.
+-            _log.debug("HTTPS enabled.")
+-            kw['ssl_version'] = ssl.PROTOCOL_TLSv1
+-
+         if cert:
+             if isinstance(cert, tuple):
+                 # Key and cert are separate
