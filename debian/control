@@ -4,7 +4,12 @@ Priority: optional
 Maintainer: Giuseppe Lavagetto <glavagetto@wikimedia.org>
 Build-Depends: debhelper (>= 9), dh-python, python-all,
   python-setuptools, python3-all, python3-setuptools,
-  python-unittest2, python3-all-dbg, python-all-dbg 
+  python-unittest2, python3-all-dbg, python-all-dbg,
+  python-dnspython, python3-dnspython,
+  python-urllib3, python3-urllib3,
+  python-openssl, python3-openssl,
+  python-nose, python3-nose,
+  python-mock, python3-mock
 Standards-Version: 4.1.2
 Homepage: https://github.com/jplana/python-etcd
 X-Python-Version: >= 2.7

@@ -1,3 +1,9 @@
+python-etcd (0.4.3-4) stretch-wikimedia; urgency=medium
+
+  * Fix Build-Depends
+
+ -- Filippo Giunchedi <filippo@wikimedia.org>  Tue, 11 Dec 2018 17:43:16 +0100
+
 python-etcd (0.4.3-3) stretch-wikimedia; urgency=medium
 
   * Fix issues connecting with etcd version 3
