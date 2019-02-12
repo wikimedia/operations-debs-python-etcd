@@ -1,0 +1,21 @@
+diff --git a/setup.py b/setup.py
+index 5387ef4..806d13a 100644
+--- a/setup.py
++++ b/setup.py
+@@ -8,15 +8,9 @@ NEWS = open(os.path.join(here, 'NEWS.txt')).read()
+ 
+ version = '0.4.3'
+ 
+-# Dnspython is two different packages depending on python version
+-if sys.version_info.major == 2:
+-    dns = 'dnspython'
+-else:
+-    dns = 'dnspython3'
+-
+ install_requires = [
+     'urllib3>=1.7.1',
+-    dns
++    'dnspython'
+ ]
+ 
+ test_requires = [

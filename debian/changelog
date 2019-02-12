@@ -1,3 +1,9 @@
+python-etcd (0.4.3-5) stretch-wikimedia; urgency=medium
+
+  * Fix dnspython dependency for stretch and python3
+
+ -- Giuseppe Lavagetto <glavagetto@wikimedia.org>  Tue, 12 Feb 2019 18:47:09 +0100
+
 python-etcd (0.4.3-4) stretch-wikimedia; urgency=medium
 
   * Fix Build-Depends
